@@ -572,7 +572,7 @@ is_interface() {
 is_vface_name_allocated(){
     is_interface "$1" || [[ -f "$COMMON_CONFDIR/vfaces/${1}" ]]
 }
-
+# 获取 Wi-Fi 接口对应的物理设备名（phy device 名称）
 get_interface_phy_device() { # only for wifi interface
     local x
     for x in /sys/class/ieee80211/*; do
@@ -591,7 +591,7 @@ get_interface_phy_device() { # only for wifi interface
     echo "Failed to get phy interface" >&2
     return 1
 }
-
+# 获取指定 Wi-Fi 接口的物理设备信息（如支持的频段、信道、带宽等）
 get_adapter_info() { # only for wifi interface
     local iPHY
     iPHY=$(get_interface_phy_device "$1")
@@ -599,6 +599,7 @@ get_adapter_info() { # only for wifi interface
     iw phy "$iPHY" info
 }
 
+# 获取指定网络接口对应的内核模块名称（即该网卡驱动的模块名，例如 iwlwifi、e1000e 等）
 get_adapter_kernel_module() {
     local MODULE
     MODULE=$(readlink -f "/sys/class/net/$1/device/driver/module")
