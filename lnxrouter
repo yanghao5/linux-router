@@ -606,6 +606,7 @@ get_adapter_kernel_module() {
     echo "${MODULE##*/}"
 }
 
+# 检查某个无线网卡（WiFi 适配器）是否同时支持 STA（客户端模式）和 AP（热点模式）。
 can_be_sta_and_ap() {
     # iwconfig does not provide this information, assume false
     [[ $USE_IWCONFIG -eq 1 ]] && return 1
@@ -621,6 +622,7 @@ can_be_sta_and_ap() {
     return 1
 }
 
+# 判断给定的无线网卡是否支持 AP（Access Point，无线热点）模式
 can_be_ap() {
     # iwconfig does not provide this information, assume true
     [[ $USE_IWCONFIG -eq 1 ]] && return 0
@@ -628,6 +630,7 @@ can_be_ap() {
     return 1
 }
 
+# 判断给定的无线接口是否可以在指定的信道（Channel）上发送数据。
 can_transmit_to_channel() {
     local IFACE CHANNEL_NUM CHANNEL_INFO
     IFACE=$1
@@ -648,6 +651,7 @@ can_transmit_to_channel() {
 }
 
 # taken from iw/util.c
+# 函数 ieee80211_frequency_to_channel() 用于将 Wi-Fi 频率（单位 MHz）转换为对应的 IEEE 802.11 无线信道号（channel number）。
 ieee80211_frequency_to_channel() {
     local FREQ=$1
     if [[ $FREQ -eq 2484 ]]; then
@@ -665,7 +669,7 @@ ieee80211_frequency_to_channel() {
     fi
 }
 
-
+# 用于判断指定的无线接口（如 wlan0）是否已经连接到了无线网络。
 is_interface_wifi_connected() {
     if [[ $USE_IWCONFIG -eq 0 ]]; then
         iw dev "$1" link 2>&1 | grep -E '^Connected to' > /dev/null 2>&1 && return 0
@@ -675,7 +679,7 @@ is_interface_wifi_connected() {
     return 1
 }
 
-
+# 函数 is_unicast_macaddr() 的作用是判断一个 MAC 地址的第一个字节是否表示 单播（unicast）地址。
 is_unicast_macaddr() {
     local x
     x=$(echo "$1" | cut -d: -f1)
@@ -683,11 +687,16 @@ is_unicast_macaddr() {
     [[ $(expr $x % 2) -eq 0 ]]
 }
 
+# 读取接口的 Mac 地址
 get_interface_mac() {
     is_interface "$1" || return
     cat "/sys/class/net/${1}/address"
 }
 
+# PCI 总线ID
+# 驱动信息（如果有）
+# PCI 设备的详细名称（如果有）
+# 或者打印“virtual interface”字样
 show_interface_pci_info() {  # pci id / model / virtual
     is_interface "$1" || return
     
@@ -726,6 +735,7 @@ show_interface_pci_info() {  # pci id / model / virtual
     # TODO usb
 }
 
+# 无线网卡（WiFi）分配一个新的虚拟接口名字，避免名字冲突。
 alloc_new_vface_name() { # only for wifi
     local i=0
     local v_iface_name="$VIRT_NAME"
@@ -741,6 +751,7 @@ alloc_new_vface_name() { # only for wifi
     echo "${v_iface_name}"
 }
 
+# 作用是“释放”之前分配的虚拟接口名字，通过删除对应的标记文件。
 dealloc_vface_name() {
     rm -f "$COMMON_CONFDIR/vfaces/$1"
 }
