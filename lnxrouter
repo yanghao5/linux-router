@@ -1,10 +1,16 @@
 #!/bin/bash
 
 VERSION=0.7.6
+# 提取当前脚本文件的名称，不包含路径
+# "$0" 是当前脚本的路径，basename 会去除路径部分。
 PROGNAME="$(basename "$0")"
 
+# 设置当前脚本使用的语言环境为 C（POSIX 默认环境）。
+# 这样做的目的是确保脚本行为在不同语言环境下保持一致，比如排序顺序、错误信息、数字格式等。
 export LC_ALL=C
 
+# 设置默认文件权限掩码为 0122
+# 所有者可读写，其他用户只能读
 SCRIPT_UMASK=0122
 umask $SCRIPT_UMASK
 
