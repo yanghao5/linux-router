@@ -522,7 +522,7 @@ parse_user_options(){
     done
 }
 
-
+# 将一个形如 ip:port 的字符串分离为 IP 和端口
 # seperate ip and port
 sep_ip_port() {
     # usage: sep_ip_port <ip:port> <var for ip> <var for port>
