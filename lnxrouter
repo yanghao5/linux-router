@@ -568,7 +568,7 @@ is_interface() {
     [[ -z "$1" ]] && return 1
     [[ -d "/sys/class/net/${1}" ]]
 }
-
+# 判断参数 $1（一个网络接口名）是否已经被分配/占用。
 is_vface_name_allocated(){
     is_interface "$1" || [[ -f "$COMMON_CONFDIR/vfaces/${1}" ]]
 }
