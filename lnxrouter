@@ -853,6 +853,11 @@ generate_random_lan_ip6_prefix() {
 
 
 # start haveged when needed
+# haveged_watchdog 是个守护进程脚本，用于检测系统随机熵池的可用熵值，如果熵值低于 1000，就：
+
+# 检查 haveged 是否安装，如果没安装，打印警告。
+# 如果安装了但没有运行 haveged，则启动 haveged 来增加熵。
+# 整个过程是个无限循环，每 2 秒检测一次。
 haveged_watchdog() {
     local show_warn=1
     while :; do
@@ -871,6 +876,13 @@ haveged_watchdog() {
         sleep 2
     done
 }
+
+# 你提供的 pid_watchdog() 是一个用于监控进程状态的 shell 函数。其作用是
+# 进入无限循环。
+# 如果 /proc/$PID 存在：
+# 读取 /proc/$PID/status 中的 State 字段（进程状态）。
+# 如果状态不是 "Z"（僵尸），就 sleep 然后继续监控。
+# 如果 /proc/$PID 不存在，或者进程状态是 "Z"（Zombie），就调用 die "$ERR_MSG"（提示错误并退出）
 pid_watchdog() {
     local PID="$1"
     local SLEEP="$2"
@@ -889,7 +901,9 @@ pid_watchdog() {
     done
     
 }
+
 #========
+# 使用 dbus-send 通过系统 D-Bus 查询某个服务名（$DBUS_NAME）对应的进程 PID
 get_pid_by_dbus_name() {
     local DBUS_NAME="$1"
     local pid  r
@@ -902,13 +916,19 @@ get_pid_by_dbus_name() {
     echo "$pid"
     return $r
 }
+
+# 这个 Bash 函数 is_same_netns() 用来判断当前进程和另一个进程是否在*相同的网络命名空间（network namespace*中
 is_same_netns() {
     local pid2="$1"
+    # 如果当前系统没有 /proc/$$/ns/net 文件（即不支持 netns），视作“相同”
     [[ ! -f /proc/$$/ns/net ]] && return 0 # no netns feature. treat as same
+    # 比较两个进程的网络命名空间的 inode（readlink 获取的内容）
     [[ "$(readlink /proc/$$/ns/net)" == "$(readlink /proc/$pid2/ns/net)" ]] && return 0
     return 1
 }
+
 #-----------------
+# 判断 NetworkManager 是否正在运行且与当前进程处于同一网络命名空间（netns）中
 # only support NetworkManager >= 0.9.9
 is_nm_running() {
     NM_PID="$(get_pid_by_dbus_name "org.freedesktop.NetworkManager")"
