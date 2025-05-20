@@ -1160,6 +1160,8 @@ start_nat() {
     done 
 }
 
+# 这个 start_ban_lan Bash 函数的主要目的是使用 iptables 阻止客户端访问本地局域网（LAN）或其他私有/本地地址范围。
+# 它针对 IPv4 和 IPv6 的常见私有地址段设置过滤规则，并阻止从某个子网接口（${SUBNET_IFACE}）来的流量，同时允许 ICMP（因为 IPv6 需要 ICMPv6 正常工作）。
 start_ban_lan() {
     local arr_nets_to_protect
     local ICMP_NAME
@@ -1192,6 +1194,8 @@ start_ban_lan() {
 
 }
 
+# 这个 allow_dns_port 函数的作用是在 iptables 中添加规则，允许来自本地子网到网关的 DNS 请求（端口 53），
+# 适用于 IPv4 和 IPv6，分别允许 TCP 和 UDP 协议。
 allow_dns_port() {
     local SUBNET_NET
     local GATEWAY
@@ -1217,7 +1221,7 @@ allow_dns_port() {
     done 
 }
 
-
+# 捕获所有来自子网接口的 DNS 查询请求（TCP/UDP 53 端口），并重定向到本机的 53 端口，即实现 DNS 劫持。
 start_catch_dns() {
     local GATEWAY
     local PROTs
@@ -1237,7 +1241,7 @@ start_catch_dns() {
     done
 }
 
-
+# 允许 DHCP 请求通过防火墙，使连接到子网接口的客户端能够自动获取 IP 地址
 allow_dhcp() {
     echo 
     echo "iptables: allow dhcp"
@@ -1246,6 +1250,8 @@ allow_dhcp() {
     iptb 6 v filter I INPUT -i ${SUBNET_IFACE} -p udp -m udp --dport 547 -j ACCEPT || die
 }
 
+# 这个 Bash 函数 start_redsocks 的目的是设置一个 透明代理（Transparent Proxy），
+# 将非局域网的 TCP 和 UDP 流量重定向到本地的代理端口（${TP_PORT}），例如用于 redsocks 等程序。
 # TODO: use 'DNAT' instead of '--to-ports' to support other IP
 start_redsocks() {
     local SUBNET_NET
@@ -1286,6 +1292,7 @@ start_redsocks() {
 }
 
 #---------------------------------------
+在 $CONFDIR/sys_6_conf_iface 下创建目录，用来保存某个网络接口的 IPv6 配置状态。
 backup_ipv6_bits() {
     mkdir "$CONFDIR/sys_6_conf_iface" || die "Failed making dir to save interface IPv6 status"
     cp  "/proc/sys/net/ipv6/conf/$SUBNET_IFACE/disable_ipv6" \
@@ -1299,6 +1306,8 @@ backup_ipv6_bits() {
             "$CONFDIR/sys_6_conf_iface/" || die "Failed backking up interface ipv6 bits"
     fi
 }
+
+# 它根据变量 IPV6 的值，配置某个网卡的 IPv6 功能，通过 /proc/sys/net/ipv6/conf/<接口名>/ 下的控制接口设置行为：
 set_ipv6_bits() {
     if [[ $IPV6 -eq 1 ]]; then
         echo 0 > "/proc/sys/net/ipv6/conf/$SUBNET_IFACE/disable_ipv6"
@@ -1309,12 +1318,15 @@ set_ipv6_bits() {
         echo 1 > "/proc/sys/net/ipv6/conf/$SUBNET_IFACE/disable_ipv6"
     fi
 }
+
+# 还原某个网络接口的 IPv6 参数配置，具体操作是：
 restore_ipv6_bits() {
     if [[ -d "$CONFDIR/sys_6_conf_iface" ]]; then
         cp -f "$CONFDIR/sys_6_conf_iface/*" "/proc/sys/net/ipv6/conf/$SUBNET_IFACE/"
     fi
 }
 
+# 设置 mac 地址的
 set_interface_mac() {
     local INTERFACE
     local MAC
@@ -1325,6 +1337,7 @@ set_interface_mac() {
     ip link set dev "${INTERFACE}" address "${MAC}" 
 }
 
+# 备份某个网络接口的状态信息，以便之后可以还原（如重启网络服务、切换代理、恢复配置等场景）
 backup_interface_status() {
     # virtual wifi interface will be destroyed, so no need to save status
     
@@ -1343,6 +1356,8 @@ backup_interface_status() {
     
     # nm managing status is saved when nm_set_unmanaged()
 }
+
+# 恢复接口状态
 restore_interface_status() {
     # virtual wifi interface will be destroyed, so no need to restore status
     # don't use [[ $VWIFI_IFACE ]] to judge, if creating virtual wifi failed, VWIFI_IFACE is empty
@@ -1539,6 +1554,8 @@ print_clients_from_leases() {  # MAC|IP|HOST|lease
     done
     
 }
+
+# 利用 ip n 命令（即 ip neighbor）列出某个网络接口上的邻居（IP-MAC 对应关系），并对输出进行格式化（如 MAC|IP|?|STATUS）。
 print_interface_neighbors_via_iproute() {  # MAC|IP|_|STATUS 
     local IFACE=$1
     
@@ -1564,6 +1581,11 @@ print_interface_neighbors_via_iproute() {  # MAC|IP|_|STATUS
         fi
     done
 }
+
+# 这个 Bash 函数 print_interface_neighbors_via_iw() 的作用是
+# 使用 iw dev <iface> station dump 命令获取指定无线接口（IFACE）连接的所有客户端的 MAC 地址；
+# 对每个 MAC 地址，调用 iw dev <iface> station get <MAC> 获取详细信息，从中提取信号强度（signal:）；
+# 最终输出格式为：
 print_interface_neighbors_via_iw() {  # MAC|_|_|signal  
     local IFACE=$1
     local MAC SIGNAL
@@ -1576,6 +1598,8 @@ print_interface_neighbors_via_iw() {  # MAC|_|_|signal
     done
 }
 
+# 这段 Bash 函数 list_clients 的功能是列出某个网络接口的客户端信息（被动模式）
+# ，包括从租约文件、iw命令和 iproute 获取的邻居信息，然后格式化输出
 list_clients() { # passive mode. (use 'arp-scan' or 'netdiscover' if want active mode)
     local IFACE pid
     local CONFDIR
