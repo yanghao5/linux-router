@@ -762,6 +762,10 @@ get_all_mac_in_system() {
     cat /sys/class/net/*/address
 }
 
+# 给定一个网络接口（如 eth0），获取它的当前 MAC 地址，并以此为基础，尝试生成一个新的、在系统中未被占用的 MAC 地址：
+# 只修改 MAC 地址的最后一个字节。
+# 变化范围为 +10 到 +240。
+# 遇到系统中不存在的 MAC 地址即停止并返回该新地址。
 get_new_macaddr_according_to_existing() {
     local REALDEV OLDMAC NEWMAC LAST_BYTE i
     REALDEV=$1
@@ -775,6 +779,7 @@ get_new_macaddr_according_to_existing() {
     echo "$NEWMAC"
 }
 
+# 生成一个系统中未被使用的随机 MAC 地址
 generate_random_mac() {
     local r1 r2 r3 r4 r5 r6 
     local RAND_MAC
@@ -795,7 +800,10 @@ generate_random_mac() {
     echo "$RAND_MAC"
 }
 
-
+# 检查某个 192.168.X.X 网段是否 未被系统使用或路由
+# ip -4 address 中是否有以 192.168.$1. 开头的地址 本机是否配置了这个 IP 段
+# ip -4 route 是否有 192.168.$1. 开头的路由 是否存在该网段的路由
+# ip -4 route get 192.168.$1.0 和 192.168.$1.255 是否显示 "via" 或 "unreachable" 系统是否会路由该网段（不是本地接口）
 is_ip4_lan_range_available() { # checks 192.168.x.x
     ( ip -4 address | grep "inet 192\.168\.$1\." > /dev/null 2>&1 ) && return 1
     ( ip -4 route | grep "^192\.168\.$1\." > /dev/null 2>&1 ) && return 1
@@ -803,6 +811,8 @@ is_ip4_lan_range_available() { # checks 192.168.x.x
     ( ip -4 route get 192.168.$1.255 2>&1 | grep  -E "\bvia\b|\bunreachable\b" > /dev/null 2>&1 )  && return 0
     return 1
 }
+
+# 只不过它是用于检查 IPv6 的本地唯一地址（ULA）网段是否可用，以 fdXX::/8 开头。
 is_ip6_lan_range_available() {  # checks fdxx::
     ( ip -6 address | grep -i "inet6 fd$1:$2$3:$4$5:$6$7:" > /dev/null 2>&1 ) && return 1
     ( ip -6 route | grep -i "^fd$1:$2$3:$4$5:$6$7:" > /dev/null 2>&1 ) && return 1
@@ -811,6 +821,9 @@ is_ip6_lan_range_available() {  # checks fdxx::
     return 1
 }
 
+# 在 192.168.X.1 的格式中随机选择一个 X，直到这个 192.168.X.0/24 网段未被使用（通过 is_ip4_lan_range_available 检查）。
+# 一旦找到可用的，就返回 "192.168.X.1" 作为生成的 IP 地址。
+# 它依赖于前面定义的 is_ip4_lan_range_available 函数，用于检查该子网是否已经被使用
 generate_random_ip4() {
     local random_ip4
     while :; do
@@ -819,6 +832,9 @@ generate_random_ip4() {
     done
     echo "192.168.$random_ip4.1"
 }
+
+# 随机生成一个符合 ULA（本地唯一地址） 的 IPv6 前缀，形如
+# 调用 is_ip6_lan_range_available 函数，检查该前缀是否可用
 generate_random_lan_ip6_prefix() {
     local r1 r2 r3 r4 r5 r6 r7
     while :; do
