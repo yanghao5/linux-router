@@ -757,7 +757,7 @@ dealloc_vface_name() {
 }
 
 #======
-
+# 获取 mac 地址
 get_all_mac_in_system() {
     cat /sys/class/net/*/address
 }
