@@ -925,6 +925,7 @@ nm_restore_manage() {
     fi
 }
 #-------
+#  is_firewalld_running 的功能是判断 firewalld 是否正在运行，且运行在当前网络命名空间中。
 is_firewalld_running() {
     FIREWALLD_PID="$(get_pid_by_dbus_name "org.fedoraproject.FirewallD1")"
     
