@@ -1014,6 +1014,7 @@ CUSTOM_CHAINS_4_filter=
 CUSTOM_CHAINS_4_nat=
 CUSTOM_CHAINS_6_filter=
 CUSTOM_CHAINS_6_nat=
+# 这个 Bash 函数 iptb 是一个 通用的 IPv4/IPv6 iptables 封装器，它支持向 iptables 或 ip6tables 添加/删除规则、链等操作，并将反操作记录到撤销脚本中，方便事后还原。
 iptb() 
 {
     local FoS=$1 # 4 | 6
