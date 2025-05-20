@@ -1092,6 +1092,7 @@ iptb()
     return $?
 }
 
+# 根据当前网络接口和配置，使用 iptb 函数向 iptables/ip6tables 添加一系列规则，阻止非预期的数据包转发。
 disable_unwanted_forwarding() {
     for iv in "${IP_VERs[@]}"; do
         if [[ "$INTERNET_IFACE" ]]; then
@@ -1111,6 +1112,8 @@ disable_unwanted_forwarding() {
     done
         
 }
+
+# 配置 NAT 规则（包括 SNAT/MASQUERADE 和 FORWARD）以允许子网访问外部网络，并允许外部流量响应。
 start_nat() {
     local SUBNET_NET
     
